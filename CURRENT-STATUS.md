@@ -13,10 +13,11 @@
 - This does not establish that all user journeys have passed hands-on testing.
 
 ## Source export — completed checkpoint
-- Exported the 12-file AppDeploy source snapshot into the GitHub repository.
-- Includes `src/App.tsx`, `src/index.css`, app entry point, backend handler, package/configuration files, PWA manifest and test definitions.
+- Exported the AppDeploy source snapshot into the GitHub repository, then identified and added the missing `src/RaceCentre.tsx` file (588 lines) from the live AppDeploy source.
+- Includes `src/App.tsx`, `src/RaceCentre.tsx`, `src/index.css`, app entry point, backend handler, package/configuration files, PWA manifest and test definitions.
 - Verified that the main React source and mobile stylesheet are present in GitHub.
-- The repository is now a source-code checkpoint, but a clean restore/build/deploy has not yet been tested.
+- The repository is now a more complete source-code checkpoint. A clean restore/build/deploy has not yet been tested.
+- `package.json` does not list the AppDeploy-specific `@appdeploy/client` and `@appdeploy/sdk` packages imported by the source, and there is no verified lockfile. AppDeploy supplies these runtime integrations in its own environment. A standalone build therefore remains unproven and must not be represented as ready.
 - GitHub is not connected to an automatic AppDeploy deployment pipeline. AppDeploy remains the live deployment owner.
 
 ## Confirmed MVP scope
