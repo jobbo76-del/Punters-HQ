@@ -1,0 +1,45 @@
+[
+  {
+    "name": "Create and retain a tracker entry",
+    "sanity": true,
+    "viewport": "mobile",
+    "covers": ["tracker entry creation", "required field validation", "browser persistence after reload", "mobile tracker workflow"],
+    "description": "Verifies the main tracker workflow saves a valid entry and retains it after a refresh.",
+    "steps": ["Open Tracker from the mobile navigation", "Enter horse name Example Runner, race Demo Race 1, stake 10 and decimal odds 3.00", "Save the selection", "Refresh the page"],
+    "expected": "Example Runner appears in Saved selections after refresh with stake 10.00 and Pending result."
+  },
+  {
+    "name": "Use race tools and understand the calculations",
+    "viewport": "mobile",
+    "covers": ["decimal odds implied probability calculator", "multi-leg combined odds calculator", "race notes input", "speed map education", "Australian track condition education", "no-live-data disclosure"],
+    "description": "Verifies the new race tools provide working arithmetic and clearly labelled educational race information.",
+    "steps": ["Open Race tools from the mobile navigation", "Enter decimal odds of 4.00", "Confirm implied probability shows 25.0 percent and a $10 return shows $40.00", "Enter multi legs 2.00, 3.00 and confirm combined odds show 6.00", "Enter a race note and review the speed map and track conditions lessons"],
+    "expected": "The calculator outputs update correctly, notes can be entered, and the page clearly states that race information is educational and not live."
+  },
+  {
+    "name": "Update a result and remove an entry",
+    "viewport": "desktop",
+    "covers": ["tracker result update", "settled-entry calculations", "delete confirmation", "delete persistence"],
+    "description": "Verifies a saved selection can be settled, included in calculations, and deleted with confirmation.",
+    "setup": ["Create a tracker entry named Settlement Runner with stake 10 and decimal odds 2.00"],
+    "steps": ["Change Settlement Runner result to Won", "Confirm returns and net result update", "Delete Settlement Runner and confirm", "Refresh the page"],
+    "expected": "The entry is removed and no longer contributes to tracker totals after refresh."
+  },
+  {
+    "name": "Review insights and handle an unavailable AI service",
+    "viewport": "desktop",
+    "covers": ["AI insights generation", "demo data disclosure", "AI error handling", "retry guidance"],
+    "description": "Verifies the Insights lab returns a cautious record review and shows a useful error when the service is unavailable.",
+    "qa_faults": [{"method": "POST", "path": "/api/insights", "status": 503, "body_json": {"error": "simulated_unavailable"}}],
+    "steps": ["Open Insights with no saved tracker entries", "Choose Review my record", "Wait for the review response"],
+    "expected": "A clear error message explains that insights are temporarily unavailable and that the tracker data remains safe."
+  },
+  {
+    "name": "Use learning, leaderboard, challenges and safer play",
+    "viewport": "mobile",
+    "covers": ["learning hub navigation", "lesson previews", "sample leaderboard disclosure", "challenge progress", "weekly personal limit setting", "Australian support resources"],
+    "description": "Verifies the educational area, sample community preview and safer-play tools are accessible on mobile.",
+    "steps": ["Open Learn and select Preview lesson for Reading a form guide", "Return Home and inspect the leaderboard", "Open Challenges", "Open Safer play and review the weekly limit and Australian support links"],
+    "expected": "Lesson preview feedback appears, the leaderboard is labelled SAMPLE DATA, challenge progress is visible, and Australian support resources are accessible."
+  }
+]
