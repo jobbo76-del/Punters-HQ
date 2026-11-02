@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { api } from '@appdeploy/client';
+import RaceCentre from './RaceCentre';
 
 type Entry = {
   id: string;
@@ -9,6 +10,7 @@ type Entry = {
   stake: number;
   odds: number;
   result: 'Pending' | 'Won' | 'Lost';
+  bookmaker?: string;
 };
 
 type Section =
@@ -16,6 +18,7 @@ type Section =
   | 'Tracker'
   | 'Insights'
   | 'Race tools'
+  | 'Race Centre'
   | 'Learn'
   | 'Challenges'
   | 'Safer play';
@@ -78,6 +81,7 @@ function App() {
   const [stake, setStake] = useState('');
   const [odds, setOdds] = useState('');
   const [result, setResult] = useState<Entry['result']>('Pending');
+  const [bookmaker, setBookmaker] = useState('');
   const [message, setMessage] = useState('');
   const [insight, setInsight] = useState('');
   const [insightError, setInsightError] = useState('');
@@ -89,7 +93,6 @@ function App() {
   const [showConfetti, setShowConfetti] = useState(false);
   const [singleOdds, setSingleOdds] = useState('3.50');
   const [multiOdds, setMultiOdds] = useState('2.00, 3.00');
-  const [raceNotes, setRaceNotes] = useState('');
   const singleProbability = Number(singleOdds) >= 1
     ? (100 / Number(singleOdds))
     : 0;
@@ -267,6 +270,7 @@ function App() {
       stake: stakeValue,
       odds: oddsValue,
       result,
+      bookmaker: bookmaker || undefined,
     };
     setEntries(current => [entry, ...current]);
     setHorse('');
@@ -274,6 +278,7 @@ function App() {
     setStake('');
     setOdds('');
     setResult('Pending');
+    setBookmaker('');
     setMessage('Entry saved on this device.');
     setShowConfetti(true);
     if (soundOn) {
@@ -360,6 +365,7 @@ function App() {
     'Tracker',
     'Insights',
     'Race tools',
+    'Race Centre',
     'Learn',
     'Challenges',
     'Safer play',
@@ -405,6 +411,7 @@ function App() {
                       Tracker: '▤',
                       Insights: '◈',
                       'Race tools': '♧',
+                      'Race Centre': '🏇',
                       Learn: '▣',
                       Challenges: '✦',
                       'Safer play': '♡',
@@ -618,6 +625,17 @@ function App() {
                       </label>
                     </div>
                     <label>
+                      Bookmaker
+                      <select value={bookmaker} onChange={e => setBookmaker(e.target.value)}>
+                        <option value=''>Not specified</option>
+                        <option>Sportsbet</option>
+                        <option>TAB</option>
+                        <option>Ladbrokes</option>
+                        <option>Bet365</option>
+                        <option>Unibet</option>
+                      </select>
+                    </label>
+                    <label>
                       Result
                       <select
                         value={result}
@@ -703,6 +721,7 @@ function App() {
                           <th>SELECTION</th>
                           <th>STAKE</th>
                           <th>ODDS</th>
+                          <th>BOOKMAKER</th>
                           <th>RESULT</th>
                           <th></th>
                         </tr>
@@ -716,6 +735,7 @@ function App() {
                             </td>
                             <td>{money(item.stake)}</td>
                             <td>{item.odds.toFixed(2)}</td>
+                            <td>{item.bookmaker || '—'}</td>
                             <td>
                               <select
                                 className="status-select"
@@ -804,6 +824,8 @@ function App() {
             </>
           )}
 
+          {section === 'Race Centre' && <RaceCentre />}
+
           {section === 'Race tools' && (
             <>
               <PageHeading
@@ -883,6 +905,10 @@ function App() {
                   </p>
                 </section>
               </div>
+              <div className="tracker-grid">
+                <OddsComparison />
+                <EachWayCalculator />
+              </div>
               <div className="lesson-grid">
                 <article className="lesson-card">
                   <span className="lesson-number">01</span>
@@ -918,23 +944,7 @@ function App() {
                   </p>
                 </article>
               </div>
-              <section className="panel">
-                <p className="eyebrow">YOUR OWN RACE NOTES</p>
-                <h2>Record what you notice</h2>
-                <label className="limit-input">
-                  Race notes (kept in this page while it remains open)
-                  <textarea
-                    rows={5}
-                    value={raceNotes}
-                    onChange={e => setRaceNotes(e.target.value)}
-                    placeholder="Meeting, race number, track rating, pace map observations, scratchings and questions to review..."
-                  />
-                </label>
-                <p className="small-note">
-                  Do not treat notes as verified race data. Check official racing
-                  sources for current fields, scratchings and conditions.
-                </p>
-              </section>
+              <RaceNotebook />
             </>
           )}
 
@@ -1029,6 +1039,7 @@ function App() {
                 title="Safer play"
                 text="Set boundaries before you start. Taking a break or choosing not to bet are always valid choices."
               />
+              <BankrollControls entries={entries} />
               <section className="panel limit-panel">
                 <div>
                   <p className="eyebrow">PERSONAL TRACKING LIMIT</p>
@@ -1136,6 +1147,7 @@ function App() {
                     Tracker: '▤',
                     Insights: '◈',
                     'Race tools': '♧',
+                    'Race Centre': '🏇',
                     Learn: '▣',
                     Challenges: '✦',
                     'Safer play': '♡',
@@ -1153,6 +1165,289 @@ function App() {
         </div>
       )}
     </div>
+  );
+}
+
+type RaceNote = {
+  id: string;
+  title: string;
+  meeting: string;
+  race: string;
+  track: string;
+  date: string;
+  content: string;
+};
+
+const NOTES_KEY = 'punters-hq-race-notes-v1';
+const BANKROLL_KEY = 'punters-hq-bankroll-v1';
+const DAILY_LIMIT_KEY = 'punters-hq-daily-limit-v1';
+
+function readRaceNotes(): RaceNote[] {
+  try {
+    const saved = localStorage.getItem(NOTES_KEY);
+    return saved ? JSON.parse(saved) as RaceNote[] : [];
+  } catch {
+    return [];
+  }
+}
+
+function OddsComparison() {
+  const bookmakers = ['Sportsbet', 'TAB', 'Ladbrokes', 'Bet365', 'Unibet'];
+  const [selection, setSelection] = useState('');
+  const [prices, setPrices] = useState<Record<string, string>>({
+    Sportsbet: '',
+    TAB: '',
+    Ladbrokes: '',
+    Bet365: '',
+    Unibet: '',
+  });
+  const valid = bookmakers
+    .map(name => ({ name, price: Number(prices[name]) }))
+    .filter(item => prices[item.name].trim() !== '' && Number.isFinite(item.price) && item.price >= 1);
+  const best = valid.length
+    ? valid.reduce((top, item) => item.price > top.price ? item : top)
+    : null;
+
+  return (
+    <section className="panel">
+      <p className="eyebrow">MANUAL PRICE CHECK</p>
+      <h2>Compare bookmaker odds</h2>
+      <label className="limit-input">
+        Horse or selection
+        <input value={selection} onChange={e => setSelection(e.target.value)} placeholder="Enter selection name" />
+      </label>
+      {bookmakers.map(name => (
+        <label className="limit-input" key={name}>
+          {name} decimal odds
+          <input
+            type="number"
+            min="1"
+            step="0.01"
+            value={prices[name]}
+            onChange={e => setPrices(current => ({ ...current, [name]: e.target.value }))}
+            placeholder="Leave blank if unavailable"
+          />
+        </label>
+      ))}
+      {best ? (
+        <div className="notice" role="status">
+          <span>✓</span>
+          <div>
+            <strong>Best entered price: {best.name} — {best.price.toFixed(2)}</strong>
+            <p>{selection.trim() || 'Selection not named'} · Compared {valid.length} entered price{valid.length === 1 ? '' : 's'}. Prices are manually entered, not live bookmaker feeds.</p>
+          </div>
+        </div>
+      ) : (
+        <p className="small-note">Enter at least one valid decimal price of 1.00 or higher.</p>
+      )}
+      <button className="secondary-button full-button" type="button" onClick={() => {
+        setSelection('');
+        setPrices({ Sportsbet: '', TAB: '', Ladbrokes: '', Bet365: '', Unibet: '' });
+      }}>Clear comparison</button>
+    </section>
+  );
+}
+
+function EachWayCalculator() {
+  const [stake, setStake] = useState('10');
+  const [odds, setOdds] = useState('5.00');
+  const [fraction, setFraction] = useState('0.25');
+  const [outcome, setOutcome] = useState<'win' | 'place' | 'lose'>('win');
+  const amount = Number(stake);
+  const price = Number(odds);
+  const placeFraction = Number(fraction);
+  const valid = Number.isFinite(amount) && amount > 0 &&
+    Number.isFinite(price) && price >= 1 &&
+    Number.isFinite(placeFraction) && placeFraction > 0 && placeFraction <= 1;
+  const halfStake = valid ? amount / 2 : 0;
+  const placeOdds = valid ? 1 + (price - 1) * placeFraction : 0;
+  const grossReturn = !valid || outcome === 'lose'
+    ? 0
+    : outcome === 'win'
+      ? halfStake * price + halfStake * placeOdds
+      : halfStake * placeOdds;
+  const net = grossReturn - (valid ? amount : 0);
+
+  return (
+    <section className="panel">
+      <p className="eyebrow">EACH-WAY ESTIMATE</p>
+      <h2>Each-way calculator</h2>
+      <p className="small-note">Enter the total stake. The calculator splits it equally between win and place parts.</p>
+      <label className="limit-input">
+        Total stake (AUD)
+        <input type="number" min="0.01" step="0.01" value={stake} onChange={e => setStake(e.target.value)} />
+      </label>
+      <label className="limit-input">
+        Win decimal odds
+        <input type="number" min="1" step="0.01" value={odds} onChange={e => setOdds(e.target.value)} />
+      </label>
+      <label className="limit-input">
+        Place fraction
+        <select value={fraction} onChange={e => setFraction(e.target.value)}>
+          <option value="0.25">1/4 of win odds</option>
+          <option value="0.2">1/5 of win odds</option>
+          <option value="0.5">1/2 of win odds</option>
+        </select>
+      </label>
+      <label className="limit-input">
+        Example outcome
+        <select value={outcome} onChange={e => setOutcome(e.target.value as 'win' | 'place' | 'lose')}>
+          <option value="win">Wins (win and place parts return)</option>
+          <option value="place">Places only (place part returns)</option>
+          <option value="lose">Unplaced (no return)</option>
+        </select>
+      </label>
+      <div className="number-list">
+        <NumberLine label="Place decimal odds used" value={valid ? placeOdds.toFixed(2) : 'Check inputs'} />
+        <NumberLine label="Illustrative gross return" value={valid ? money(grossReturn) : '—'} />
+        <NumberLine label="Illustrative net result" value={valid ? money(net) : '—'} />
+      </div>
+      <p className="small-note">Illustration only. Actual bookmaker place terms, deductions, dead heats and settlement rules vary. Confirm the specific market terms before relying on a calculation.</p>
+    </section>
+  );
+}
+
+function RaceNotebook() {
+  const [notes, setNotes] = useState<RaceNote[]>(readRaceNotes);
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [title, setTitle] = useState('');
+  const [meeting, setMeeting] = useState('');
+  const [race, setRace] = useState('');
+  const [track, setTrack] = useState('');
+  const [content, setContent] = useState('');
+  const [message, setMessage] = useState('');
+
+  useEffect(() => {
+    localStorage.setItem(NOTES_KEY, JSON.stringify(notes));
+  }, [notes]);
+
+  const reset = () => {
+    setEditingId(null);
+    setTitle('');
+    setMeeting('');
+    setRace('');
+    setTrack('');
+    setContent('');
+  };
+
+  const save = (event: React.FormEvent) => {
+    event.preventDefault();
+    if (!title.trim() || !content.trim()) {
+      setMessage('Add a note title and some observations before saving.');
+      return;
+    }
+    const note: RaceNote = {
+      id: editingId || String(Date.now()) + Math.random().toString(16).slice(2),
+      title: title.trim(),
+      meeting: meeting.trim(),
+      race: race.trim(),
+      track: track.trim(),
+      date: new Date().toISOString(),
+      content: content.trim(),
+    };
+    setNotes(current => editingId
+      ? current.map(item => item.id === editingId ? note : item)
+      : [note, ...current]);
+    setMessage(editingId ? 'Note updated on this device.' : 'Note saved on this device.');
+    reset();
+  };
+
+  const edit = (note: RaceNote) => {
+    setEditingId(note.id);
+    setTitle(note.title);
+    setMeeting(note.meeting);
+    setRace(note.race);
+    setTrack(note.track);
+    setContent(note.content);
+    setMessage('');
+  };
+
+  const remove = (id: string) => {
+    if (window.confirm('Delete this racing note?')) {
+      setNotes(current => current.filter(item => item.id !== id));
+    }
+  };
+
+  return (
+    <section className="panel">
+      <p className="eyebrow">YOUR OWN RACE NOTES</p>
+      <h2>Racing notebook</h2>
+      <form className="entry-form" onSubmit={save}>
+        <label>Note title<input value={title} onChange={e => setTitle(e.target.value)} placeholder="e.g. Flemington track observations" /></label>
+        <div className="form-two">
+          <label>Meeting<input value={meeting} onChange={e => setMeeting(e.target.value)} placeholder="Track / meeting" /></label>
+          <label>Race<input value={race} onChange={e => setRace(e.target.value)} placeholder="Race number" /></label>
+        </div>
+        <label>Track condition<input value={track} onChange={e => setTrack(e.target.value)} placeholder="e.g. Soft 5 — verify officially" /></label>
+        <label>Observations<textarea rows={5} value={content} onChange={e => setContent(e.target.value)} placeholder="Pace map, barriers, scratchings to verify, observations and post-race review..." /></label>
+        <button className="primary-button full-button" type="submit">{editingId ? 'Update note' : 'Save racing note'}</button>
+        {editingId && <button className="secondary-button full-button" type="button" onClick={reset}>Cancel editing</button>}
+        {message && <p className="form-message" role="status">{message}</p>}
+      </form>
+      <p className="small-note">Notes are saved in this browser on this device and remain after refresh. They do not sync to another phone or computer. Notes are not included in the tracker backup yet.</p>
+      {notes.length === 0 ? (
+        <EmptyState title="No saved racing notes yet" text="Your dated meeting and race observations will appear here." />
+      ) : (
+        <div className="recent-list">
+          {notes.map(note => (
+            <article className="recent-row" key={note.id}>
+              <div>
+                <strong>{note.title}</strong>
+                <small>{[note.meeting, note.race, note.track].filter(Boolean).join(' · ') || 'General racing note'} · {new Date(note.date).toLocaleDateString('en-AU')}</small>
+                <p>{note.content}</p>
+                <button className="text-link" type="button" onClick={() => edit(note)}>Edit</button>
+                <button className="text-link" type="button" onClick={() => remove(note.id)}>Delete</button>
+              </div>
+            </article>
+          ))}
+        </div>
+      )}
+    </section>
+  );
+}
+
+function BankrollControls({ entries }: { entries: Entry[] }) {
+  const [starting, setStarting] = useState(() => localStorage.getItem(BANKROLL_KEY) || '500');
+  const [dailyLimit, setDailyLimit] = useState(() => localStorage.getItem(DAILY_LIMIT_KEY) || '25');
+
+  useEffect(() => {
+    localStorage.setItem(BANKROLL_KEY, starting);
+  }, [starting]);
+
+  useEffect(() => {
+    localStorage.setItem(DAILY_LIMIT_KEY, dailyLimit);
+  }, [dailyLimit]);
+
+  const todayKey = new Date().toDateString();
+  const todayStake = entries.filter(item => new Date(item.date).toDateString() === todayKey)
+    .reduce((sum, item) => sum + item.stake, 0);
+  const settledNet = entries.filter(item => item.result !== 'Pending')
+    .reduce((sum, item) => sum + (item.result === 'Won' ? item.stake * item.odds - item.stake : -item.stake), 0);
+  const currentBankroll = Number(starting) + settledNet;
+  const dailyValue = Number(dailyLimit) || 0;
+
+  return (
+    <section className="panel limit-panel">
+      <p className="eyebrow">BANKROLL OVERVIEW</p>
+      <h2>Starting balance and daily boundary</h2>
+      <p className="muted">These figures are calculated only from entries you record here. They do not connect to bookmaker accounts or block activity elsewhere.</p>
+      <div className="form-two">
+        <label className="limit-input">Starting bankroll (AUD)
+          <input type="number" min="0" step="0.01" value={starting} onChange={e => setStarting(e.target.value)} />
+        </label>
+        <label className="limit-input">Daily tracking limit (AUD)
+          <input type="number" min="0" step="0.01" value={dailyLimit} onChange={e => setDailyLimit(e.target.value)} />
+        </label>
+      </div>
+      <div className="number-list">
+        <NumberLine label="Illustrative current bankroll" value={money(currentBankroll)} />
+        <NumberLine label="Recorded stakes today" value={money(todayStake)} />
+        <NumberLine label="Daily limit remaining" value={money(Math.max(0, dailyValue - todayStake))} />
+      </div>
+      {dailyValue > 0 && todayStake > dailyValue && <p className="warning-message">Recorded stakes are above your daily limit. Pause and review your boundary.</p>}
+      {currentBankroll < 0 && <p className="warning-message">Recorded net losses exceed the starting balance. Do not chase losses.</p>}
+      <p className="small-note">A planning and record-keeping aid only — not a real account balance, financial advice or a control over external betting.</p>
+    </section>
   );
 }
 
