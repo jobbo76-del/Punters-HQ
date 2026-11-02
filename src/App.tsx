@@ -93,9 +93,8 @@ function App() {
   const [showConfetti, setShowConfetti] = useState(false);
   const [singleOdds, setSingleOdds] = useState('3.50');
   const [multiOdds, setMultiOdds] = useState('2.00, 3.00');
-  const singleProbability = Number(singleOdds) >= 1
-    ? (100 / Number(singleOdds))
-    : 0;
+  const singleProbability =
+    Number(singleOdds) >= 1 ? 100 / Number(singleOdds) : 0;
   const multiTotalOdds = multiOdds
     .split(',')
     .map(value => Number(value.trim()))
@@ -117,98 +116,120 @@ function App() {
   // Expose safe, read-only actions to browsers that implement the WebMCP
   // imperative API. The app remains fully usable when WebMCP is unavailable.
   useEffect(() => {
-    const modelContext = (document as Document & {
-      modelContext?: {
-        registerTool?: (
-          tool: {
-            name: string;
-            title: string;
-            description: string;
-            inputSchema: Record<string, unknown>;
-            annotations: { readOnlyHint: boolean; untrustedContentHint: boolean };
-            execute: (input: unknown) => unknown;
-          },
-          options?: { signal?: AbortSignal }
-        ) => void | Promise<void>;
-      };
-    }).modelContext;
+    const modelContext = (
+      document as Document & {
+        modelContext?: {
+          registerTool?: (
+            tool: {
+              name: string;
+              title: string;
+              description: string;
+              inputSchema: Record<string, unknown>;
+              annotations: {
+                readOnlyHint: boolean;
+                untrustedContentHint: boolean;
+              };
+              execute: (input: unknown) => unknown;
+            },
+            options?: { signal?: AbortSignal }
+          ) => void | Promise<void>;
+        };
+      }
+    ).modelContext;
 
     if (!modelContext?.registerTool) return;
 
     const lifecycle = new AbortController();
     const register = async () => {
       try {
-        await modelContext.registerTool?.({
-          name: 'read_punters_hq_tracker_summary',
-          title: 'Read Punters HQ tracker summary',
-          description:
-            'Read a concise summary of the current device-local Punters HQ tracker. This is read-only and does not place bets or change records.',
-          inputSchema: {
-            type: 'object',
-            properties: {},
-            additionalProperties: false,
-          },
-          annotations: { readOnlyHint: true, untrustedContentHint: false },
-          execute: () => {
-            const current = readEntries();
-            const settled = current.filter(item => item.result !== 'Pending');
-            const won = settled.filter(item => item.result === 'Won');
-            const lostStake = settled
-              .filter(item => item.result === 'Lost')
-              .reduce((sum, item) => sum + item.stake, 0);
-            const returned = won.reduce(
-              (sum, item) => sum + item.stake * item.odds,
-              0
-            );
-            const totalSettledStake = settled.reduce(
-              (sum, item) => sum + item.stake,
-              0
-            );
-            return {
-              recordCount: current.length,
-              settledCount: settled.length,
-              pendingCount: current.length - settled.length,
-              wins: won.length,
-              losses: settled.length - won.length,
-              settledStakeAUD: Number(totalSettledStake.toFixed(2)),
-              returnsAUD: Number(returned.toFixed(2)),
-              netAUD: Number((returned - totalSettledStake).toFixed(2)),
-              note: 'Device-local user-entered records only. Not live racing data or betting advice.',
-            };
-          },
-        }, { signal: lifecycle.signal });
-
-        await modelContext.registerTool?.({
-          name: 'calculate_punters_hq_decimal_odds',
-          title: 'Calculate decimal odds',
-          description:
-            'Calculate implied probability and illustrative return from decimal odds and an Australian dollar stake. This is arithmetic only, not a prediction.',
-          inputSchema: {
-            type: 'object',
-            properties: {
-              decimalOdds: { type: 'number', minimum: 1 },
-              stakeAUD: { type: 'number', minimum: 0 },
+        await modelContext.registerTool?.(
+          {
+            name: 'read_punters_hq_tracker_summary',
+            title: 'Read Punters HQ tracker summary',
+            description:
+              'Read a concise summary of the current device-local Punters HQ tracker. This is read-only and does not place bets or change records.',
+            inputSchema: {
+              type: 'object',
+              properties: {},
+              additionalProperties: false,
             },
-            required: ['decimalOdds', 'stakeAUD'],
-            additionalProperties: false,
+            annotations: { readOnlyHint: true, untrustedContentHint: false },
+            execute: () => {
+              const current = readEntries();
+              const settled = current.filter(item => item.result !== 'Pending');
+              const won = settled.filter(item => item.result === 'Won');
+              const lostStake = settled
+                .filter(item => item.result === 'Lost')
+                .reduce((sum, item) => sum + item.stake, 0);
+              const returned = won.reduce(
+                (sum, item) => sum + item.stake * item.odds,
+                0
+              );
+              const totalSettledStake = settled.reduce(
+                (sum, item) => sum + item.stake,
+                0
+              );
+              return {
+                recordCount: current.length,
+                settledCount: settled.length,
+                pendingCount: current.length - settled.length,
+                wins: won.length,
+                losses: settled.length - won.length,
+                settledStakeAUD: Number(totalSettledStake.toFixed(2)),
+                returnsAUD: Number(returned.toFixed(2)),
+                netAUD: Number((returned - totalSettledStake).toFixed(2)),
+                note: 'Device-local user-entered records only. Not live racing data or betting advice.',
+              };
+            },
           },
-          annotations: { readOnlyHint: true, untrustedContentHint: false },
-          execute: (input: unknown) => {
-            const values = input as { decimalOdds?: number; stakeAUD?: number };
-            const price = Number(values?.decimalOdds);
-            const amount = Number(values?.stakeAUD);
-            if (!Number.isFinite(price) || price < 1 ||
-                !Number.isFinite(amount) || amount < 0) {
-              throw new Error('Enter decimal odds of 1.00 or higher and a non-negative stake.');
-            }
-            return {
-              impliedProbabilityPercent: Number((100 / price).toFixed(2)),
-              illustrativeReturnAUD: Number((amount * price).toFixed(2)),
-              illustrativeProfitAUD: Number((amount * (price - 1)).toFixed(2)),
-              note: 'Price-implied probability excludes bookmaker margin and is not a true-chance estimate.',
-            };
+          { signal: lifecycle.signal }
+        );
+
+        await modelContext.registerTool?.(
+          {
+            name: 'calculate_punters_hq_decimal_odds',
+            title: 'Calculate decimal odds',
+            description:
+              'Calculate implied probability and illustrative return from decimal odds and an Australian dollar stake. This is arithmetic only, not a prediction.',
+            inputSchema: {
+              type: 'object',
+              properties: {
+                decimalOdds: { type: 'number', minimum: 1 },
+                stakeAUD: { type: 'number', minimum: 0 },
+              },
+              required: ['decimalOdds', 'stakeAUD'],
+              additionalProperties: false,
+            },
+            annotations: { readOnlyHint: true, untrustedContentHint: false },
+            execute: (input: unknown) => {
+              const values = input as {
+                decimalOdds?: number;
+                stakeAUD?: number;
+              };
+              const price = Number(values?.decimalOdds);
+              const amount = Number(values?.stakeAUD);
+              if (
+                !Number.isFinite(price) ||
+                price < 1 ||
+                !Number.isFinite(amount) ||
+                amount < 0
+              ) {
+                throw new Error(
+                  'Enter decimal odds of 1.00 or higher and a non-negative stake.'
+                );
+              }
+              return {
+                impliedProbabilityPercent: Number((100 / price).toFixed(2)),
+                illustrativeReturnAUD: Number((amount * price).toFixed(2)),
+                illustrativeProfitAUD: Number(
+                  (amount * (price - 1)).toFixed(2)
+                ),
+                note: 'Price-implied probability excludes bookmaker margin and is not a true-chance estimate.',
+              };
+            },
           },
-        }, { signal: lifecycle.signal });
+          { signal: lifecycle.signal }
+        );
       } catch (error) {
         console.warn('WebMCP tools could not be registered', error);
       }
@@ -319,16 +340,96 @@ function App() {
     }
   };
 
-  const exportEntries = () => {
-    const blob = new Blob([JSON.stringify(entries, null, 2)], {
+  const exportFullBackup = () => {
+    const backupKeys = [
+      'punters-hq-tracker-v1',
+      'punters-hq-limit-v1',
+      'punters-hq-race-notes-v1',
+      'punters-hq-bankroll-v1',
+      'punters-hq-daily-limit-v1',
+      'punters-hq-race-centre-v1',
+      'punters-hq-provider-setup-v1',
+    ];
+    const storage = Object.fromEntries(
+      backupKeys.map(key => [key, localStorage.getItem(key)])
+    );
+    const backup = {
+      format: 'punters-hq-full-backup',
+      version: 1,
+      exportedAt: new Date().toISOString(),
+      storage,
+    };
+    const blob = new Blob([JSON.stringify(backup, null, 2)], {
       type: 'application/json',
     });
     const url = URL.createObjectURL(blob);
-    const link = document.createElement('a');
-    link.href = url;
-    link.download = 'punters-hq-tracker-backup.json';
-    link.click();
+    const downloadLink = document.createElement('a');
+    downloadLink.href = url;
+    downloadLink.download = 'punters-hq-full-backup.json';
+    downloadLink.click();
     URL.revokeObjectURL(url);
+  };
+
+  const importFullBackup = async (
+    event: React.ChangeEvent<HTMLInputElement>
+  ) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+    const backupKeys = [
+      'punters-hq-tracker-v1',
+      'punters-hq-limit-v1',
+      'punters-hq-race-notes-v1',
+      'punters-hq-bankroll-v1',
+      'punters-hq-daily-limit-v1',
+      'punters-hq-race-centre-v1',
+      'punters-hq-provider-setup-v1',
+    ];
+    try {
+      const backup = JSON.parse(await file.text()) as {
+        format?: string;
+        version?: number;
+        storage?: Record<string, unknown>;
+      };
+      if (
+        backup.format !== 'punters-hq-full-backup' ||
+        backup.version !== 1 ||
+        !backup.storage
+      ) {
+        throw new Error('This is not a Punters HQ full backup file.');
+      }
+      const restoredValues = backupKeys.map(key => {
+        const value = backup.storage?.[key];
+        if (value !== null && typeof value !== 'string') {
+          throw new Error('The backup contains an invalid saved item.');
+        }
+        if (typeof value === 'string') JSON.parse(value);
+        return [key, value] as const;
+      });
+      if (
+        !window.confirm(
+          'Restore this Punters HQ backup on this device? It will replace the existing tracker, notes, race workspaces and settings on this browser.'
+        )
+      ) {
+        return;
+      }
+      restoredValues.forEach(([key, value]) => {
+        if (value === null || value === undefined) {
+          localStorage.removeItem(key);
+        } else {
+          localStorage.setItem(key, value);
+        }
+      });
+      window.alert('Backup restored. Punters HQ will now reload your saved records.');
+      window.location.reload();
+    } catch (error) {
+      window.alert(
+        error instanceof Error
+          ? error.message
+          : 'The backup could not be read. Your existing records have not been changed.'
+      );
+    } finally {
+      event.target.value = '';
+    }
   };
 
   const runInsights = async () => {
@@ -626,8 +727,11 @@ function App() {
                     </div>
                     <label>
                       Bookmaker
-                      <select value={bookmaker} onChange={e => setBookmaker(e.target.value)}>
-                        <option value=''>Not specified</option>
+                      <select
+                        value={bookmaker}
+                        onChange={e => setBookmaker(e.target.value)}
+                      >
+                        <option value="">Not specified</option>
                         <option>Sportsbet</option>
                         <option>TAB</option>
                         <option>Ladbrokes</option>
@@ -689,14 +793,23 @@ function App() {
                   </div>
                   <button
                     className="secondary-button full-button"
-                    onClick={exportEntries}
-                    disabled={entries.length === 0}
+                    onClick={exportFullBackup}
                   >
-                    ↓ Export a backup
+                    ↓ Export a full backup
                   </button>
+                  <label className="backup-import-control">
+                    Restore a full backup from a saved JSON file
+                    <input
+                      type="file"
+                      accept="application/json,.json"
+                      onChange={importFullBackup}
+                    />
+                  </label>
                   <p className="small-note">
-                    Your record is stored in this browser on this device. Export
-                    a backup before clearing browser data or changing phones.
+                    Includes tracker entries, racing notes, race workspaces,
+                    bankroll limits and provider checklist progress. Save the
+                    file somewhere safe. Restoring replaces these records on
+                    this device.
                   </p>
                 </section>
               </div>
@@ -836,10 +949,13 @@ function App() {
               <div className="notice">
                 <span>ⓘ</span>
                 <div>
-                  <strong>Educational tools — not betting recommendations.</strong>
+                  <strong>
+                    Educational tools — not betting recommendations.
+                  </strong>
                   <p>
-                    Implied probability is not the same as a runner's true chance.
-                    Bookmaker margin, changing prices and uncertainty all matter.
+                    Implied probability is not the same as a runner's true
+                    chance. Bookmaker margin, changing prices and uncertainty
+                    all matter.
                   </p>
                 </div>
               </div>
@@ -860,20 +976,33 @@ function App() {
                   <div className="number-list">
                     <NumberLine
                       label="Implied probability"
-                      value={singleProbability > 0 ? singleProbability.toFixed(1) + '%' : 'Enter odds of 1.00+'}
+                      value={
+                        singleProbability > 0
+                          ? singleProbability.toFixed(1) + '%'
+                          : 'Enter odds of 1.00+'
+                      }
                     />
                     <NumberLine
                       label="Return on a $10 stake"
-                      value={Number(singleOdds) >= 1 ? money(10 * Number(singleOdds)) : '—'}
+                      value={
+                        Number(singleOdds) >= 1
+                          ? money(10 * Number(singleOdds))
+                          : '—'
+                      }
                     />
                     <NumberLine
                       label="Profit on a $10 stake"
-                      value={Number(singleOdds) >= 1 ? money(10 * (Number(singleOdds) - 1)) : '—'}
+                      value={
+                        Number(singleOdds) >= 1
+                          ? money(10 * (Number(singleOdds) - 1))
+                          : '—'
+                      }
                     />
                   </div>
                   <p className="small-note">
-                    Formula: 100 ÷ decimal odds. This is the probability implied by
-                    the price before accounting for bookmaker margin — not a prediction.
+                    Formula: 100 ÷ decimal odds. This is the probability implied
+                    by the price before accounting for bookmaker margin — not a
+                    prediction.
                   </p>
                 </section>
                 <section className="panel">
@@ -888,20 +1017,27 @@ function App() {
                     />
                   </label>
                   <div className="number-list">
-                    <NumberLine label="Valid legs" value={String(multiLegCount)} />
+                    <NumberLine
+                      label="Valid legs"
+                      value={String(multiLegCount)}
+                    />
                     <NumberLine
                       label="Combined decimal odds"
-                      value={multiLegCount > 0 ? multiTotalOdds.toFixed(2) : '—'}
+                      value={
+                        multiLegCount > 0 ? multiTotalOdds.toFixed(2) : '—'
+                      }
                     />
                     <NumberLine
                       label="Illustrative return on $5"
-                      value={multiLegCount > 0 ? money(5 * multiTotalOdds) : '—'}
+                      value={
+                        multiLegCount > 0 ? money(5 * multiTotalOdds) : '—'
+                      }
                     />
                   </div>
                   <p className="small-note">
                     This is multiplication of entered prices only. It does not
-                    estimate the chance of all legs winning. Every additional leg
-                    adds another way for a multi to lose.
+                    estimate the chance of all legs winning. Every additional
+                    leg adds another way for a multi to lose.
                   </p>
                 </section>
               </div>
@@ -915,10 +1051,10 @@ function App() {
                   <span className="lesson-time">Race reading</span>
                   <h2>Speed maps</h2>
                   <p>
-                    A speed map estimates where runners may settle early — leaders,
-                    on-pace runners, midfield and backmarkers. It is a guide, not a
-                    live GPS feed or a certainty. Barriers, pace pressure and late
-                    changes can alter the shape of a race.
+                    A speed map estimates where runners may settle early —
+                    leaders, on-pace runners, midfield and backmarkers. It is a
+                    guide, not a live GPS feed or a certainty. Barriers, pace
+                    pressure and late changes can alter the shape of a race.
                   </p>
                 </article>
                 <article className="lesson-card">
@@ -937,10 +1073,10 @@ function App() {
                   <span className="lesson-time">Form analysis</span>
                   <h2>Race-day checklist</h2>
                   <p>
-                    Review recent form, distance, class, barrier, weight, jockey,
-                    track conditions, likely pace and scratchings. Record what
-                    you observed before the race, then compare it with the result
-                    without rewriting your reasoning afterwards.
+                    Review recent form, distance, class, barrier, weight,
+                    jockey, track conditions, likely pace and scratchings.
+                    Record what you observed before the race, then compare it
+                    with the result without rewriting your reasoning afterwards.
                   </p>
                 </article>
               </div>
@@ -1185,7 +1321,7 @@ const DAILY_LIMIT_KEY = 'punters-hq-daily-limit-v1';
 function readRaceNotes(): RaceNote[] {
   try {
     const saved = localStorage.getItem(NOTES_KEY);
-    return saved ? JSON.parse(saved) as RaceNote[] : [];
+    return saved ? (JSON.parse(saved) as RaceNote[]) : [];
   } catch {
     return [];
   }
@@ -1203,9 +1339,14 @@ function OddsComparison() {
   });
   const valid = bookmakers
     .map(name => ({ name, price: Number(prices[name]) }))
-    .filter(item => prices[item.name].trim() !== '' && Number.isFinite(item.price) && item.price >= 1);
+    .filter(
+      item =>
+        prices[item.name].trim() !== '' &&
+        Number.isFinite(item.price) &&
+        item.price >= 1
+    );
   const best = valid.length
-    ? valid.reduce((top, item) => item.price > top.price ? item : top)
+    ? valid.reduce((top, item) => (item.price > top.price ? item : top))
     : null;
 
   return (
@@ -1214,7 +1355,11 @@ function OddsComparison() {
       <h2>Compare bookmaker odds</h2>
       <label className="limit-input">
         Horse or selection
-        <input value={selection} onChange={e => setSelection(e.target.value)} placeholder="Enter selection name" />
+        <input
+          value={selection}
+          onChange={e => setSelection(e.target.value)}
+          placeholder="Enter selection name"
+        />
       </label>
       {bookmakers.map(name => (
         <label className="limit-input" key={name}>
@@ -1224,7 +1369,9 @@ function OddsComparison() {
             min="1"
             step="0.01"
             value={prices[name]}
-            onChange={e => setPrices(current => ({ ...current, [name]: e.target.value }))}
+            onChange={e =>
+              setPrices(current => ({ ...current, [name]: e.target.value }))
+            }
             placeholder="Leave blank if unavailable"
           />
         </label>
@@ -1233,17 +1380,37 @@ function OddsComparison() {
         <div className="notice" role="status">
           <span>✓</span>
           <div>
-            <strong>Best entered price: {best.name} — {best.price.toFixed(2)}</strong>
-            <p>{selection.trim() || 'Selection not named'} · Compared {valid.length} entered price{valid.length === 1 ? '' : 's'}. Prices are manually entered, not live bookmaker feeds.</p>
+            <strong>
+              Best entered price: {best.name} — {best.price.toFixed(2)}
+            </strong>
+            <p>
+              {selection.trim() || 'Selection not named'} · Compared{' '}
+              {valid.length} entered price{valid.length === 1 ? '' : 's'}.
+              Prices are manually entered, not live bookmaker feeds.
+            </p>
           </div>
         </div>
       ) : (
-        <p className="small-note">Enter at least one valid decimal price of 1.00 or higher.</p>
+        <p className="small-note">
+          Enter at least one valid decimal price of 1.00 or higher.
+        </p>
       )}
-      <button className="secondary-button full-button" type="button" onClick={() => {
-        setSelection('');
-        setPrices({ Sportsbet: '', TAB: '', Ladbrokes: '', Bet365: '', Unibet: '' });
-      }}>Clear comparison</button>
+      <button
+        className="secondary-button full-button"
+        type="button"
+        onClick={() => {
+          setSelection('');
+          setPrices({
+            Sportsbet: '',
+            TAB: '',
+            Ladbrokes: '',
+            Bet365: '',
+            Unibet: '',
+          });
+        }}
+      >
+        Clear comparison
+      </button>
     </section>
   );
 }
@@ -1256,30 +1423,51 @@ function EachWayCalculator() {
   const amount = Number(stake);
   const price = Number(odds);
   const placeFraction = Number(fraction);
-  const valid = Number.isFinite(amount) && amount > 0 &&
-    Number.isFinite(price) && price >= 1 &&
-    Number.isFinite(placeFraction) && placeFraction > 0 && placeFraction <= 1;
+  const valid =
+    Number.isFinite(amount) &&
+    amount > 0 &&
+    Number.isFinite(price) &&
+    price >= 1 &&
+    Number.isFinite(placeFraction) &&
+    placeFraction > 0 &&
+    placeFraction <= 1;
   const halfStake = valid ? amount / 2 : 0;
   const placeOdds = valid ? 1 + (price - 1) * placeFraction : 0;
-  const grossReturn = !valid || outcome === 'lose'
-    ? 0
-    : outcome === 'win'
-      ? halfStake * price + halfStake * placeOdds
-      : halfStake * placeOdds;
+  const grossReturn =
+    !valid || outcome === 'lose'
+      ? 0
+      : outcome === 'win'
+        ? halfStake * price + halfStake * placeOdds
+        : halfStake * placeOdds;
   const net = grossReturn - (valid ? amount : 0);
 
   return (
     <section className="panel">
       <p className="eyebrow">EACH-WAY ESTIMATE</p>
       <h2>Each-way calculator</h2>
-      <p className="small-note">Enter the total stake. The calculator splits it equally between win and place parts.</p>
+      <p className="small-note">
+        Enter the total stake. The calculator splits it equally between win and
+        place parts.
+      </p>
       <label className="limit-input">
         Total stake (AUD)
-        <input type="number" min="0.01" step="0.01" value={stake} onChange={e => setStake(e.target.value)} />
+        <input
+          type="number"
+          min="0.01"
+          step="0.01"
+          value={stake}
+          onChange={e => setStake(e.target.value)}
+        />
       </label>
       <label className="limit-input">
         Win decimal odds
-        <input type="number" min="1" step="0.01" value={odds} onChange={e => setOdds(e.target.value)} />
+        <input
+          type="number"
+          min="1"
+          step="0.01"
+          value={odds}
+          onChange={e => setOdds(e.target.value)}
+        />
       </label>
       <label className="limit-input">
         Place fraction
@@ -1291,18 +1479,34 @@ function EachWayCalculator() {
       </label>
       <label className="limit-input">
         Example outcome
-        <select value={outcome} onChange={e => setOutcome(e.target.value as 'win' | 'place' | 'lose')}>
+        <select
+          value={outcome}
+          onChange={e => setOutcome(e.target.value as 'win' | 'place' | 'lose')}
+        >
           <option value="win">Wins (win and place parts return)</option>
           <option value="place">Places only (place part returns)</option>
           <option value="lose">Unplaced (no return)</option>
         </select>
       </label>
       <div className="number-list">
-        <NumberLine label="Place decimal odds used" value={valid ? placeOdds.toFixed(2) : 'Check inputs'} />
-        <NumberLine label="Illustrative gross return" value={valid ? money(grossReturn) : '—'} />
-        <NumberLine label="Illustrative net result" value={valid ? money(net) : '—'} />
+        <NumberLine
+          label="Place decimal odds used"
+          value={valid ? placeOdds.toFixed(2) : 'Check inputs'}
+        />
+        <NumberLine
+          label="Illustrative gross return"
+          value={valid ? money(grossReturn) : '—'}
+        />
+        <NumberLine
+          label="Illustrative net result"
+          value={valid ? money(net) : '—'}
+        />
       </div>
-      <p className="small-note">Illustration only. Actual bookmaker place terms, deductions, dead heats and settlement rules vary. Confirm the specific market terms before relying on a calculation.</p>
+      <p className="small-note">
+        Illustration only. Actual bookmaker place terms, deductions, dead heats
+        and settlement rules vary. Confirm the specific market terms before
+        relying on a calculation.
+      </p>
     </section>
   );
 }
@@ -1345,10 +1549,14 @@ function RaceNotebook() {
       date: new Date().toISOString(),
       content: content.trim(),
     };
-    setNotes(current => editingId
-      ? current.map(item => item.id === editingId ? note : item)
-      : [note, ...current]);
-    setMessage(editingId ? 'Note updated on this device.' : 'Note saved on this device.');
+    setNotes(current =>
+      editingId
+        ? current.map(item => (item.id === editingId ? note : item))
+        : [note, ...current]
+    );
+    setMessage(
+      editingId ? 'Note updated on this device.' : 'Note saved on this device.'
+    );
     reset();
   };
 
@@ -1373,30 +1581,104 @@ function RaceNotebook() {
       <p className="eyebrow">YOUR OWN RACE NOTES</p>
       <h2>Racing notebook</h2>
       <form className="entry-form" onSubmit={save}>
-        <label>Note title<input value={title} onChange={e => setTitle(e.target.value)} placeholder="e.g. Flemington track observations" /></label>
+        <label>
+          Note title
+          <input
+            value={title}
+            onChange={e => setTitle(e.target.value)}
+            placeholder="e.g. Flemington track observations"
+          />
+        </label>
         <div className="form-two">
-          <label>Meeting<input value={meeting} onChange={e => setMeeting(e.target.value)} placeholder="Track / meeting" /></label>
-          <label>Race<input value={race} onChange={e => setRace(e.target.value)} placeholder="Race number" /></label>
+          <label>
+            Meeting
+            <input
+              value={meeting}
+              onChange={e => setMeeting(e.target.value)}
+              placeholder="Track / meeting"
+            />
+          </label>
+          <label>
+            Race
+            <input
+              value={race}
+              onChange={e => setRace(e.target.value)}
+              placeholder="Race number"
+            />
+          </label>
         </div>
-        <label>Track condition<input value={track} onChange={e => setTrack(e.target.value)} placeholder="e.g. Soft 5 — verify officially" /></label>
-        <label>Observations<textarea rows={5} value={content} onChange={e => setContent(e.target.value)} placeholder="Pace map, barriers, scratchings to verify, observations and post-race review..." /></label>
-        <button className="primary-button full-button" type="submit">{editingId ? 'Update note' : 'Save racing note'}</button>
-        {editingId && <button className="secondary-button full-button" type="button" onClick={reset}>Cancel editing</button>}
-        {message && <p className="form-message" role="status">{message}</p>}
+        <label>
+          Track condition
+          <input
+            value={track}
+            onChange={e => setTrack(e.target.value)}
+            placeholder="e.g. Soft 5 — verify officially"
+          />
+        </label>
+        <label>
+          Observations
+          <textarea
+            rows={5}
+            value={content}
+            onChange={e => setContent(e.target.value)}
+            placeholder="Pace map, barriers, scratchings to verify, observations and post-race review..."
+          />
+        </label>
+        <button className="primary-button full-button" type="submit">
+          {editingId ? 'Update note' : 'Save racing note'}
+        </button>
+        {editingId && (
+          <button
+            className="secondary-button full-button"
+            type="button"
+            onClick={reset}
+          >
+            Cancel editing
+          </button>
+        )}
+        {message && (
+          <p className="form-message" role="status">
+            {message}
+          </p>
+        )}
       </form>
-      <p className="small-note">Notes are saved in this browser on this device and remain after refresh. They do not sync to another phone or computer. Notes are not included in the tracker backup yet.</p>
+      <p className="small-note">
+        Notes are saved in this browser on this device and remain after refresh.
+        They do not sync automatically to another phone or computer. Notes are
+        included in the full backup file, which you can restore on another device.
+      </p>
       {notes.length === 0 ? (
-        <EmptyState title="No saved racing notes yet" text="Your dated meeting and race observations will appear here." />
+        <EmptyState
+          title="No saved racing notes yet"
+          text="Your dated meeting and race observations will appear here."
+        />
       ) : (
         <div className="recent-list">
           {notes.map(note => (
             <article className="recent-row" key={note.id}>
               <div>
                 <strong>{note.title}</strong>
-                <small>{[note.meeting, note.race, note.track].filter(Boolean).join(' · ') || 'General racing note'} · {new Date(note.date).toLocaleDateString('en-AU')}</small>
+                <small>
+                  {[note.meeting, note.race, note.track]
+                    .filter(Boolean)
+                    .join(' · ') || 'General racing note'}{' '}
+                  · {new Date(note.date).toLocaleDateString('en-AU')}
+                </small>
                 <p>{note.content}</p>
-                <button className="text-link" type="button" onClick={() => edit(note)}>Edit</button>
-                <button className="text-link" type="button" onClick={() => remove(note.id)}>Delete</button>
+                <button
+                  className="text-link"
+                  type="button"
+                  onClick={() => edit(note)}
+                >
+                  Edit
+                </button>
+                <button
+                  className="text-link"
+                  type="button"
+                  onClick={() => remove(note.id)}
+                >
+                  Delete
+                </button>
               </div>
             </article>
           ))}
@@ -1407,8 +1689,12 @@ function RaceNotebook() {
 }
 
 function BankrollControls({ entries }: { entries: Entry[] }) {
-  const [starting, setStarting] = useState(() => localStorage.getItem(BANKROLL_KEY) || '500');
-  const [dailyLimit, setDailyLimit] = useState(() => localStorage.getItem(DAILY_LIMIT_KEY) || '25');
+  const [starting, setStarting] = useState(
+    () => localStorage.getItem(BANKROLL_KEY) || '500'
+  );
+  const [dailyLimit, setDailyLimit] = useState(
+    () => localStorage.getItem(DAILY_LIMIT_KEY) || '25'
+  );
 
   useEffect(() => {
     localStorage.setItem(BANKROLL_KEY, starting);
@@ -1419,10 +1705,19 @@ function BankrollControls({ entries }: { entries: Entry[] }) {
   }, [dailyLimit]);
 
   const todayKey = new Date().toDateString();
-  const todayStake = entries.filter(item => new Date(item.date).toDateString() === todayKey)
+  const todayStake = entries
+    .filter(item => new Date(item.date).toDateString() === todayKey)
     .reduce((sum, item) => sum + item.stake, 0);
-  const settledNet = entries.filter(item => item.result !== 'Pending')
-    .reduce((sum, item) => sum + (item.result === 'Won' ? item.stake * item.odds - item.stake : -item.stake), 0);
+  const settledNet = entries
+    .filter(item => item.result !== 'Pending')
+    .reduce(
+      (sum, item) =>
+        sum +
+        (item.result === 'Won'
+          ? item.stake * item.odds - item.stake
+          : -item.stake),
+      0
+    );
   const currentBankroll = Number(starting) + settledNet;
   const dailyValue = Number(dailyLimit) || 0;
 
@@ -1430,23 +1725,58 @@ function BankrollControls({ entries }: { entries: Entry[] }) {
     <section className="panel limit-panel">
       <p className="eyebrow">BANKROLL OVERVIEW</p>
       <h2>Starting balance and daily boundary</h2>
-      <p className="muted">These figures are calculated only from entries you record here. They do not connect to bookmaker accounts or block activity elsewhere.</p>
+      <p className="muted">
+        These figures are calculated only from entries you record here. They do
+        not connect to bookmaker accounts or block activity elsewhere.
+      </p>
       <div className="form-two">
-        <label className="limit-input">Starting bankroll (AUD)
-          <input type="number" min="0" step="0.01" value={starting} onChange={e => setStarting(e.target.value)} />
+        <label className="limit-input">
+          Starting bankroll (AUD)
+          <input
+            type="number"
+            min="0"
+            step="0.01"
+            value={starting}
+            onChange={e => setStarting(e.target.value)}
+          />
         </label>
-        <label className="limit-input">Daily tracking limit (AUD)
-          <input type="number" min="0" step="0.01" value={dailyLimit} onChange={e => setDailyLimit(e.target.value)} />
+        <label className="limit-input">
+          Daily tracking limit (AUD)
+          <input
+            type="number"
+            min="0"
+            step="0.01"
+            value={dailyLimit}
+            onChange={e => setDailyLimit(e.target.value)}
+          />
         </label>
       </div>
       <div className="number-list">
-        <NumberLine label="Illustrative current bankroll" value={money(currentBankroll)} />
+        <NumberLine
+          label="Illustrative current bankroll"
+          value={money(currentBankroll)}
+        />
         <NumberLine label="Recorded stakes today" value={money(todayStake)} />
-        <NumberLine label="Daily limit remaining" value={money(Math.max(0, dailyValue - todayStake))} />
+        <NumberLine
+          label="Daily limit remaining"
+          value={money(Math.max(0, dailyValue - todayStake))}
+        />
       </div>
-      {dailyValue > 0 && todayStake > dailyValue && <p className="warning-message">Recorded stakes are above your daily limit. Pause and review your boundary.</p>}
-      {currentBankroll < 0 && <p className="warning-message">Recorded net losses exceed the starting balance. Do not chase losses.</p>}
-      <p className="small-note">A planning and record-keeping aid only — not a real account balance, financial advice or a control over external betting.</p>
+      {dailyValue > 0 && todayStake > dailyValue && (
+        <p className="warning-message">
+          Recorded stakes are above your daily limit. Pause and review your
+          boundary.
+        </p>
+      )}
+      {currentBankroll < 0 && (
+        <p className="warning-message">
+          Recorded net losses exceed the starting balance. Do not chase losses.
+        </p>
+      )}
+      <p className="small-note">
+        A planning and record-keeping aid only — not a real account balance,
+        financial advice or a control over external betting.
+      </p>
     </section>
   );
 }
