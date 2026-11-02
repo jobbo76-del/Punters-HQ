@@ -72,7 +72,7 @@
       "Remove one runner and confirm it is gone",
       "Open Race tools and verify manual odds comparison and each-way calculations still work"
     ],
-    "expected":      "The provider status clearly reports that no live feed is connected; the BetMakers preparation checklist retains its locally saved progress; technical and commercial prerequisites and credential safety are visible; and manual race workspaces and existing race tools remain usable."
+    "expected": "The provider status clearly reports that no live feed is connected; the BetMakers preparation checklist retains its locally saved progress; technical and commercial prerequisites and credential safety are visible; and manual race workspaces and existing race tools remain usable."
   },
   {
     "name": "Update a result and remove an entry",
@@ -143,5 +143,32 @@
       "Visit Learn and Challenges"
     ],
     "expected": "Starting bankroll, daily and weekly limits persist and recorded stakes are shown against the configured limits."
+  },
+  {
+    "name": "Export and restore a complete Punters HQ backup",
+    "viewport": "mobile",
+    "covers": [
+      "full backup export",
+      "tracker data backup",
+      "race notes backup",
+      "race workspace backup",
+      "bankroll and limits backup",
+      "provider checklist backup",
+      "backup file validation",
+      "restore confirmation",
+      "restore persistence after reload"
+    ],
+    "description": "Verifies a single backup file preserves all supported device-local Punters HQ records and can restore them on another browser.",
+    "steps": [
+      "Create at least one tracker entry, one racing note, one race workspace with runners and change a provider checklist item",
+      "Set bankroll, daily limit and weekly limit values",
+      "Open Tracker and export a full backup",
+      "Confirm a JSON backup file is downloaded",
+      "Open a clean browser profile or another device with the staging app and choose Restore a full backup",
+      "Select the exported JSON file and confirm the restore",
+      "Refresh the app and inspect tracker, notes, race workspace, bankroll limits and provider checklist",
+      "Try selecting an unrelated JSON file and confirm it is rejected without changing saved records"
+    ],
+    "expected": "All exported records and settings are restored and remain after refresh. An unrelated or invalid file is rejected before any saved data is changed."
   }
 ]
