@@ -1,6 +1,6 @@
 # Punters HQ — Current verified status
 
-**Snapshot date:** 2 November 2026  
+**Snapshot date:** 3 November 2026  
 **AppDeploy app:** `punters-hq-v6odmo`  
 **Live URL:** https://punters-hq-v6odmo.v2.appdeploy.ai/  
 **Workspace:** AppDeploy Primary  
@@ -13,10 +13,11 @@
 - This does not establish that all user journeys have passed hands-on testing.
 
 ## Source export — completed checkpoint
-- Exported the AppDeploy source snapshot into the GitHub repository, then identified and added the missing `src/RaceCentre.tsx` file (588 lines) from the live AppDeploy source.
-- Includes `src/App.tsx`, `src/RaceCentre.tsx`, `src/index.css`, app entry point, backend handler, package/configuration files, PWA manifest and test definitions.
-- Verified that the main React source and mobile stylesheet are present in GitHub.
-- The repository is now a more complete source-code checkpoint. A clean restore/build/deploy has not yet been tested.
+- Re-read the current AppDeploy snapshot (version `1793598045988`) and synchronised all 13 source/configuration/test files into GitHub.
+- Compared all 13 files byte-for-byte between AppDeploy and GitHub `main`; every comparison matched.
+- Updated the previously stale versions of `src/App.tsx`, `src/RaceCentre.tsx`, `src/index.css`, `backend/index.ts` and `tests/tests.json` to match the current AppDeploy source.
+- Created recovery branch `appdeploy-source-backup-2026-11-03` from the synchronised `main` branch.
+- A clean restore/build/deploy has not yet been tested.
 - `package.json` does not list the AppDeploy-specific `@appdeploy/client` and `@appdeploy/sdk` packages imported by the source, and there is no verified lockfile. AppDeploy supplies these runtime integrations in its own environment. A standalone build therefore remains unproven and must not be represented as ready.
 - GitHub is not connected to an automatic AppDeploy deployment pipeline. AppDeploy remains the live deployment owner.
 
