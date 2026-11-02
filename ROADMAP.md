@@ -3,13 +3,13 @@
 This roadmap separates low-risk improvements from features that may require licensing, paid services or legal review.
 
 ## Stage 1 — Protect and verify the MVP
-- Export the complete AppDeploy source into this repository.
-- Establish a repeatable backup and restore process.
-- Run hands-on Android and desktop checks for the main workflows.
-- Fix defects and record test outcomes.
-- Verify the app icon and PWA install experience.
-- Make race notes persist safely, with clear privacy wording.
-- Improve tracker backup/restore and explain that records are device-local.
+- [x] Export the complete AppDeploy source snapshot into this repository.
+- [ ] Prove a repeatable clean restore/build/deploy process from GitHub.
+- [ ] Run hands-on Android and desktop checks for the main workflows.
+- [ ] Fix defects and record test outcomes.
+- [ ] Verify the app icon and PWA install experience.
+- [ ] Make race notes persist safely, with clear privacy wording.
+- [ ] Improve tracker backup/restore and explain that records are device-local.
 
 ## Stage 2 — Improve punter tools
 - Better performance summaries: strike rate, net result, return on stake and breakdowns by bet type.
