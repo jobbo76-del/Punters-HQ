@@ -38,6 +38,7 @@ The current AppDeploy source snapshot has now been exported into this repository
 
 - [Current verified status](CURRENT-STATUS.md)
 - [Staged product roadmap](ROADMAP.md)
+- [Free tools and reusable code register](FREE-TOOLS-AND-CODE.md)
 
 ## Responsible use
 
