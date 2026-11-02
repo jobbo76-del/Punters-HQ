@@ -1,0 +1,10 @@
+{
+  "name": "Punters HQ",
+  "short_name": "Punters HQ",
+  "description": "Your personal racing record, learning and responsible punting companion.",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#f3f5f1",
+  "theme_color": "#10251d"
+}
