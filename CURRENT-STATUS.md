@@ -3,13 +3,21 @@
 **Snapshot date:** 2 November 2026  
 **AppDeploy app:** `punters-hq-v6odmo`  
 **Live URL:** https://punters-hq-v6odmo.v2.appdeploy.ai/  
-**Workspace:** AppDeploy Primary
+**Workspace:** AppDeploy Primary  
+**GitHub source repository:** https://github.com/jobbo76-del/Punters-HQ
 
 ## Deployment
 - AppDeploy returned deployment status **ready**.
 - The current live URL is unchanged.
-- No validation or E2E test results were supplied in the status response.
-- Do not claim full manual or end-to-end testing has passed.
+- The latest status response reported no frontend or backend errors and no QA frontend/network errors.
+- This does not establish that all user journeys have passed hands-on testing.
+
+## Source export — completed checkpoint
+- Exported the 12-file AppDeploy source snapshot into the GitHub repository.
+- Includes `src/App.tsx`, `src/index.css`, app entry point, backend handler, package/configuration files, PWA manifest and test definitions.
+- Verified that the main React source and mobile stylesheet are present in GitHub.
+- The repository is now a source-code checkpoint, but a clean restore/build/deploy has not yet been tested.
+- GitHub is not connected to an automatic AppDeploy deployment pipeline. AppDeploy remains the live deployment owner.
 
 ## Confirmed MVP scope
 - Dashboard, personal tracker, browser-local persistence and JSON export.
@@ -23,19 +31,20 @@
 - Optional read-only WebMCP tracker-summary and odds-calculation tools for compatible browsers.
 
 ## Known gaps
-1. Full source code has not yet been exported into this GitHub repository.
-2. GitHub is not connected to an automatic AppDeploy deployment pipeline.
+1. Clean restore/build/deploy from the GitHub source has not yet been proven.
+2. No automatic GitHub-to-AppDeploy deployment pipeline is configured.
 3. Tracker data does not sync between devices.
 4. Race notes are temporary and are not saved permanently.
 5. Racing data, odds, leaderboard and examples are not live feeds.
 6. No live betting or bookmaker integration exists.
-7. Hands-on mobile testing and systematic E2E execution still need to be completed.
+7. Hands-on Android and desktop testing and systematic E2E execution still need to be completed.
 8. The app icon upload was previously left pending; do not assume it is installed until verified.
 
 ## Release gate before public promotion
+- Prove the GitHub source can restore/build/deploy without relying on the existing live snapshot.
 - Test on Android: navigation, add/edit/delete tracker records, refresh persistence, JSON export, calculations and mobile layout.
 - Test on desktop: same core flows and keyboard/accessibility basics.
 - Confirm local-storage and privacy wording is clear.
 - Confirm all sample data is visibly labelled.
 - Confirm safer-play information is reachable.
-- Export the full app source and verify that the repository can restore the app.
+- Verify the app icon and PWA install experience.
