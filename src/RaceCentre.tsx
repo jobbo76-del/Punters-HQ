@@ -355,18 +355,29 @@ export default function RaceCentre() {
             <li>Provider-issued OAuth endpoint and API endpoint; GraphQL requests use the provider endpoint's <code>/query</code> path.</li>
             <li>Published documentation describes GraphQL queries and WebSocket subscriptions for updates.</li>
             <li>The published FAQ states access tokens last one hour, queries are throttled at 10 per second, and disconnected subscriptions should be re-queried and restarted with backoff.</li>
+            <li>There is no token refresh. When a token expires, request a new one with the same client credentials, from a server only.</li>
+            <li>Query results are capped at 4 MB, the meetingsDated query covers at most 5 days, and some heavy fields (such as form history and runner statistics) can trigger 429 errors if requested in bulk.</li>
+            <li>The test environment is limited: dummy credentials and only some Queensland meetings and VIC Tote prices. Production needs real OAuth credentials issued by BetMakers.</li>
+            <li>BetMakers has been appointed Racing Australia's data wholesaler. Ask which official-data terms apply to a public app like this one.</li>
+            <li>Support contact in the documentation: support-api@betmakers.com.</li>
           </ul>
           <p className="small-note">These are published technical notes, not a guarantee that every product or feed is included in a Punters HQ commercial package. Confirm the current production specification with BetMakers before implementation.</p>
         </div>
         <div className="provider-resource-links">
           <a href="https://docs.betmakers.com/docs/core-api/auth/index.html" target="_blank" rel="noreferrer">CoreAPI authentication documentation ↗</a>
           <a href="https://docs.betmakers.com/docs/core-api/faq/index.html" target="_blank" rel="noreferrer">CoreAPI technical FAQ ↗</a>
-          <a href="https://graphql.coreapi.gcpintau.tbm.sh/" target="_blank" rel="noreferrer">BetMakers API demo playground ↗</a>
+          <a href="https://docs.betmakers.com/docs/overview" target="_blank" rel="noreferrer">BetMakers documentation overview ↗</a>
+          <a href="https://docs.betmakers.com/docs/core-api/introduction" target="_blank" rel="noreferrer">CoreAPI introduction and limits ↗</a>
+          <a href="https://docs.betmakers.com/docs/core-api/Changelog" target="_blank" rel="noreferrer">CoreAPI changelog ↗</a>
+          <a href="https://docs.betmakers.com/docs/core-api/troubleshooting" target="_blank" rel="noreferrer">CoreAPI troubleshooting ↗</a>
+          <a href="mailto:support-api@betmakers.com">Email BetMakers API support</a>
           <a href="https://betmakers.com/solutions/data" target="_blank" rel="noreferrer">Data and analytics products ↗</a>
-          <a href="https://investors.betmakers.com/announcements/7674533" target="_blank" rel="noreferrer">Tabcorp proposed acquisition announcement ↗</a>
+          <a href="https://betmakers.com/articles/betmakers-appointed-racing-australia-data-wholesaler" target="_blank" rel="noreferrer">Racing Australia data wholesaler news ↗</a>
+          <a href="https://www.gaming.net/tabcorp-agrees-binding-deal-to-acquire-wagering-tech-firm-betmakers/" target="_blank" rel="noreferrer">Tabcorp acquisition report ↗</a>
+          <a href="https://igamingbusiness.com/strategy/tabcorp-to-acquire-betmakers-in-267-million-deal/" target="_blank" rel="noreferrer">Tabcorp acquisition report (second source) ↗</a>
         </div>
-        <p className="small-note">Ownership note: Tabcorp announced a proposed acquisition of BetMakers in August 2026. The transaction was still subject to approvals in the latest public reporting reviewed. Confirm the correct contracting entity and support contacts when requesting a quote.</p>
-        <p className="provider-security-note"><strong>Credential safety:</strong> Never paste API secrets into this checklist, race notes or chat. If a commercial agreement is approved, credentials must be entered into encrypted backend secret storage — never placed in the app's visible screen or browser storage.</p>
+        <p className="small-note">Ownership caveat: Tabcorp signed a binding agreement on 10 August 2026 to acquire BetMakers, reported at A$0.24 per share (about A$267 million). It still needs BetMakers shareholder, court and ACCC approval. A shareholder meeting was targeted for December 2026 and completion for the third quarter of Tabcorp's 2027 financial year. Status last checked 2 November 2026 and may have changed. Before signing anything, ask who the contracting company is, what happens to your price, data rights and support if ownership changes, and whether you can leave without penalty. Tabcorp is itself a bookmaker, so also ask how your usage data is handled.</p>
+        <p className="provider-security-note"><strong>Credential safety:</strong> Never paste API secrets (client ID, client secret, tokens) into this checklist, race notes, chat, email or screenshots. This app does not ask for them and has none stored. If a commercial agreement is approved, credentials must go only into encrypted backend secret storage, never the visible screen or browser storage. Keep test and production credentials separate, give them to as few people as possible, and if one is ever exposed, tell BetMakers and have it replaced straight away.</p>
       </section>
 
       <div className="race-centre-toolbar">
