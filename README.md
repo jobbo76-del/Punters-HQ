@@ -32,14 +32,12 @@ Hosted on AppDeploy. The current deployment was reported as **ready** on 2 Novem
 - WebMCP tools only appear in compatible browser environments and are read-only.
 - A deployment marked ready is not proof that every user workflow has passed hands-on testing.
 
-## Project status and roadmap
+## Source and release status
+
+The current AppDeploy source snapshot has now been exported into this repository, including the React application, stylesheet, backend handler, project configuration, PWA manifest and test definitions. This is a source-code checkpoint, not yet a proven restore: a clean restore/build/deploy test still needs to be completed. GitHub is not connected to an automatic AppDeploy deployment pipeline; AppDeploy remains the live deployment owner.
 
 - [Current verified status](CURRENT-STATUS.md)
 - [Staged product roadmap](ROADMAP.md)
-
-## Development and release ownership
-
-The live app is currently managed in AppDeploy. This repository is being established as its documentation and source-control home. **The full application source has not yet been exported into this repository, and no automatic GitHub-to-AppDeploy deployment pipeline is configured.** Do not treat this repository as a complete restorable code backup until source export and a clean restore/deploy test are completed.
 
 ## Responsible use
 
