@@ -6,6 +6,7 @@
     "covers": [
       "tracker entry creation",
       "bookmaker selection",
+      "Dashboard V2 metrics and feature-card navigation",
       "required field validation",
       "browser persistence after reload",
       "mobile tracker workflow"
